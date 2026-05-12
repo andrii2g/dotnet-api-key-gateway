@@ -1,9 +1,8 @@
-using System.Collections.Concurrent;
 using ApiKeyGateway;
 
 var builder = WebApplication.CreateBuilder(args);
+var storeName = builder.Configuration["ApiKeys:Store"] ?? "InMemory";
 
-builder.Services.AddSingleton<IApiKeyStore, InMemoryApiKeyStore>();
 builder.Services.AddApiKeyAuthentication(options =>
 {
     options.CurrentEnvironment = builder.Configuration["ApiKeys:CurrentEnvironment"] ?? "local";
@@ -12,11 +11,52 @@ builder.Services.AddApiKeyAuthentication(options =>
     options.UpdateLastUsed = true;
 });
 
+if (string.Equals(storeName, "InMemory", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton<IApiKeyStore, InMemoryApiKeyStore>();
+}
+else
+{
+    var connectionString = builder.Configuration["ApiKeys:ConnectionString"];
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException("ApiKeys:ConnectionString must be configured for database-backed sample storage.");
+    }
+
+    var dialectValue = builder.Configuration["ApiKeys:Dialect"] ?? "MySql";
+    if (!Enum.TryParse<ApiKeySqlDialect>(dialectValue, ignoreCase: true, out var dialect))
+    {
+        throw new InvalidOperationException($"Unsupported ApiKeys:Dialect '{dialectValue}'.");
+    }
+
+    var commandTimeoutSeconds = builder.Configuration.GetValue<int?>("ApiKeys:CommandTimeoutSeconds") ?? 30;
+    builder.Services.AddApiKeyGatewayStore(options =>
+    {
+        options.Dialect = dialect;
+        options.ConnectionString = connectionString;
+        options.CommandTimeoutSeconds = commandTimeoutSeconds;
+    });
+}
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/", (IConfiguration configuration) => TypedResults.Ok(new
+{
+    service = "ApiKeyGateway.SampleWeb",
+    environment = configuration["ApiKeys:CurrentEnvironment"] ?? "local",
+    store = storeName,
+    endpoints = new[]
+    {
+        "POST /api-keys",
+        "POST /api-keys/{publicKey}/revoke",
+        "GET /secure/personas",
+        "GET /health"
+    }
+}));
 
 app.MapPost("/api-keys", async (CreateApiKeyInput input, IApiKeyService apiKeyService, CancellationToken cancellationToken) =>
 {
@@ -45,6 +85,8 @@ app.MapGet("/secure/personas", () => TypedResults.Ok(new
     tip = "Call this endpoint with Authorization: Bearer <fullApiKey>."
 })).RequireApiKeyScope("personas:execute");
 
+app.MapGet("/health", () => TypedResults.Ok(new { status = "ok" }));
+
 app.Run();
 
 internal sealed record CreateApiKeyInput(
@@ -57,7 +99,7 @@ internal sealed record CreateApiKeyInput(
 
 internal sealed class InMemoryApiKeyStore : IApiKeyStore
 {
-    private readonly ConcurrentDictionary<string, ApiKeyRecord> _records = new(StringComparer.Ordinal);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ApiKeyRecord> _records = new(StringComparer.Ordinal);
     private long _nextId;
 
     public Task<ApiKeyRecord?> FindByPublicKeyAsync(string publicKey, CancellationToken cancellationToken = default)

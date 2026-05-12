@@ -1,0 +1,43 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: apikeygateway-mysql
+    environment:
+      MYSQL_DATABASE: apikeys
+      MYSQL_USER: app
+      MYSQL_PASSWORD: appsecret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./src/ApiKeyGateway/Scripts/mysql/001_create_api_keys.sql:/docker-entrypoint-initdb.d/001_create_api_keys.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uapp -pappsecret"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: apikeygateway-postgres
+    profiles:
+      - postgres
+    environment:
+      POSTGRES_DB: apikeys
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: appsecret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./src/ApiKeyGateway/Scripts/postgresql/001_create_api_keys.sql:/docker-entrypoint-initdb.d/001_create_api_keys.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d apikeys"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  mysql-data:
+  postgres-data:
