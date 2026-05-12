@@ -6,8 +6,6 @@
     <Project Path="samples/ApiKeyGateway.SampleWeb/ApiKeyGateway.SampleWeb.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/ApiKeyGateway.AspNetCore.Tests/ApiKeyGateway.AspNetCore.Tests.csproj" />
-    <Project Path="tests/ApiKeyGateway.Dapper.Tests/ApiKeyGateway.Dapper.Tests.csproj" />
     <Project Path="tests/ApiKeyGateway.Tests/ApiKeyGateway.Tests.csproj" />
   </Folder>
 </Solution>

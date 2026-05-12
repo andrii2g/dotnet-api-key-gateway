@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace ApiKeyGateway.Dapper.Tests;
+namespace ApiKeyGateway.Tests;
 
 public sealed class DapperTests
 {
@@ -115,7 +115,7 @@ public sealed class DapperTests
         (string)instance.GetType().GetProperty(propertyName)!.GetValue(instance)!;
 
     private static Type GetInternalType(string fullName) =>
-        typeof(ApiKeyGateway.AssemblyMarker).Assembly.GetType(fullName, throwOnError: true)!;
+        typeof(AssemblyMarker).Assembly.GetType(fullName, throwOnError: true)!;
 
     private static T Invoke<T>(string methodName, params object[] args)
     {

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ApiKeyGateway.AspNetCore.Tests;
+namespace ApiKeyGateway.Tests;
 
 public sealed class AspNetCoreTests
 {
