@@ -1,2 +1,7 @@
 PLAN.md
 /.dotnet-home
+/.nuget-packages
+/.vs/ApiKeyGateway.slnx
+**/bin/
+**/obj/
+/src/ApiKeyGateway.Dapper/bin/Debug/net10.0
