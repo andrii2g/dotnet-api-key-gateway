@@ -13,7 +13,7 @@ public sealed class DapperTests
     {
         var scopes = new[] { "personas:read", "personas:execute" };
 
-        var json = Invoke<string>("Serialize", scopes);
+        var json = Invoke<string>("Serialize", (object)scopes);
         var result = Invoke<IReadOnlyCollection<string>>("Deserialize", json);
 
         Assert.Equal(scopes, result);
@@ -43,8 +43,8 @@ public sealed class DapperTests
     {
         var statements = GetStatements(ApiKeySqlDialect.MySql);
 
-        Assert.Contains("LAST_INSERT_ID()", statements.Create, StringComparison.Ordinal);
-        Assert.Contains("CAST(scopes AS CHAR)", statements.FindByPublicKey, StringComparison.Ordinal);
+        Assert.Contains("LAST_INSERT_ID()", GetStringProperty(statements, "Create"), StringComparison.Ordinal);
+        Assert.Contains("CAST(scopes AS CHAR)", GetStringProperty(statements, "FindByPublicKey"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -52,8 +52,8 @@ public sealed class DapperTests
     {
         var statements = GetStatements(ApiKeySqlDialect.PostgreSql);
 
-        Assert.Contains("RETURNING id", statements.Create, StringComparison.Ordinal);
-        Assert.Contains("scopes::text", statements.FindByPublicKey, StringComparison.Ordinal);
+        Assert.Contains("RETURNING id", GetStringProperty(statements, "Create"), StringComparison.Ordinal);
+        Assert.Contains("scopes::text", GetStringProperty(statements, "FindByPublicKey"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -105,11 +105,14 @@ public sealed class DapperTests
         Assert.True(true);
     }
 
-    private static dynamic GetStatements(ApiKeySqlDialect dialect)
+    private static object GetStatements(ApiKeySqlDialect dialect)
     {
         var type = GetInternalType("ApiKeyGateway.Dapper.ApiKeySqlStatementFactory");
         return type.GetMethod("Create", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, [dialect])!;
     }
+
+    private static string GetStringProperty(object instance, string propertyName) =>
+        (string)instance.GetType().GetProperty(propertyName)!.GetValue(instance)!;
 
     private static Type GetInternalType(string fullName) =>
         typeof(ApiKeyGateway.Dapper.AssemblyMarker).Assembly.GetType(fullName, throwOnError: true)!;
