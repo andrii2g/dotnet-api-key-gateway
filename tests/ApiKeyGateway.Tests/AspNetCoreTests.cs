@@ -15,11 +15,12 @@ public sealed class AspNetCoreTests
     [Fact]
     public async Task ValidKey_ReturnsSuccess()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         using var client = await CreateClient(new ApiKeyValidationResult.Success(
-            123, "crm", "prod", "ABCDEFGHJKLMNP23", ["personas:execute"]));
+            123, "crm", "prod", "ABCDEFGHJKLMNP23", ["personas:execute"]), cancellationToken);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "ak_crm_ABCDEFGHJKLMNP23_secret");
-        var response = await client.GetAsync("/secure");
+        var response = await client.GetAsync("/secure", cancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -27,10 +28,11 @@ public sealed class AspNetCoreTests
     [Fact]
     public async Task MissingKey_Returns401()
     {
-        using var client = await CreateClient(new ApiKeyValidationResult.Failure(ApiKeyValidationFailureReason.Missing));
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var client = await CreateClient(new ApiKeyValidationResult.Failure(ApiKeyValidationFailureReason.Missing), cancellationToken);
 
-        var response = await client.GetAsync("/secure");
-        var body = await response.Content.ReadAsStringAsync();
+        var response = await client.GetAsync("/secure", cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Equal("""{"error":"invalid_api_key"}""", body);
@@ -39,10 +41,11 @@ public sealed class AspNetCoreTests
     [Fact]
     public async Task InvalidKey_Returns401()
     {
-        using var client = await CreateClient(new ApiKeyValidationResult.Failure(ApiKeyValidationFailureReason.InvalidSecret));
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var client = await CreateClient(new ApiKeyValidationResult.Failure(ApiKeyValidationFailureReason.InvalidSecret), cancellationToken);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "bad");
 
-        var response = await client.GetAsync("/secure");
+        var response = await client.GetAsync("/secure", cancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -50,10 +53,11 @@ public sealed class AspNetCoreTests
     [Fact]
     public async Task EnvironmentMismatch_Returns401()
     {
-        using var client = await CreateClient(new ApiKeyValidationResult.Failure(ApiKeyValidationFailureReason.EnvironmentMismatch));
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var client = await CreateClient(new ApiKeyValidationResult.Failure(ApiKeyValidationFailureReason.EnvironmentMismatch), cancellationToken);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "ak_crm_ABCDEFGHJKLMNP23_secret");
 
-        var response = await client.GetAsync("/secure");
+        var response = await client.GetAsync("/secure", cancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -61,12 +65,13 @@ public sealed class AspNetCoreTests
     [Fact]
     public async Task MissingScope_Returns403()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         using var client = await CreateClient(new ApiKeyValidationResult.Success(
-            123, "crm", "prod", "ABCDEFGHJKLMNP23", ["personas:read"]));
+            123, "crm", "prod", "ABCDEFGHJKLMNP23", ["personas:read"]), cancellationToken);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "ak_crm_ABCDEFGHJKLMNP23_secret");
 
-        var response = await client.GetAsync("/secure");
-        var body = await response.Content.ReadAsStringAsync();
+        var response = await client.GetAsync("/secure", cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         Assert.Equal("""{"error":"insufficient_scope"}""", body);
@@ -75,11 +80,12 @@ public sealed class AspNetCoreTests
     [Fact]
     public async Task StoreUnavailable_Returns503()
     {
-        using var client = await CreateClient(new ApiKeyValidationResult.Failure(ApiKeyValidationFailureReason.StoreUnavailable));
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var client = await CreateClient(new ApiKeyValidationResult.Failure(ApiKeyValidationFailureReason.StoreUnavailable), cancellationToken);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "ak_crm_ABCDEFGHJKLMNP23_secret");
 
-        var response = await client.GetAsync("/secure");
-        var body = await response.Content.ReadAsStringAsync();
+        var response = await client.GetAsync("/secure", cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Equal("""{"error":"api_key_validation_unavailable"}""", body);
@@ -88,11 +94,12 @@ public sealed class AspNetCoreTests
     [Fact]
     public async Task Claims_AreProjectedOnSuccess()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         using var client = await CreateClient(new ApiKeyValidationResult.Success(
-            123, "crm", "prod", "ABCDEFGHJKLMNP23", ["personas:execute", "personas:read"]));
+            123, "crm", "prod", "ABCDEFGHJKLMNP23", ["personas:execute", "personas:read"]), cancellationToken);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "ak_crm_ABCDEFGHJKLMNP23_secret");
 
-        var response = await client.GetFromJsonAsync<Dictionary<string, string[]>>("/claims");
+        var response = await client.GetFromJsonAsync<Dictionary<string, string[]>>("/claims", cancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal(["123"], response[ApiKeyAuthenticationDefaults.ApiKeyIdClaimType]);
@@ -102,7 +109,7 @@ public sealed class AspNetCoreTests
         Assert.Equal(["personas:execute", "personas:read"], response["scope"]);
     }
 
-    private static async Task<HttpClient> CreateClient(ApiKeyValidationResult result)
+    private static async Task<HttpClient> CreateClient(ApiKeyValidationResult result, CancellationToken cancellationToken)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -126,7 +133,7 @@ public sealed class AspNetCoreTests
                 .ToDictionary(group => group.Key, group => group.Select(claim => claim.Value).ToArray()))
             .RequireAuthorization();
 
-        await app.StartAsync();
+        await app.StartAsync(cancellationToken);
         return app.GetTestClient();
     }
 

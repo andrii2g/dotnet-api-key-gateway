@@ -94,6 +94,7 @@ public sealed class CoreTests
     [Fact]
     public async Task Service_CreateAsync_PersistsNormalizedMetadata()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var store = new InMemoryStore();
         var service = CreateService(store);
 
@@ -103,7 +104,7 @@ public sealed class CoreTests
             ["personas:read", "personas:read", "personas:execute"],
             DateTimeOffset.UtcNow.AddHours(1),
             "  CRM integration  ",
-            "  admin@example.com  "));
+            "  admin@example.com  "), cancellationToken);
 
         Assert.Equal("crm", result.App);
         Assert.Equal("prod", result.Env);
@@ -115,14 +116,15 @@ public sealed class CoreTests
     [Fact]
     public async Task Service_CreateAsync_RetriesPublicKeyCollision()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var store = new InMemoryStore();
         var generator = new SequentialGenerator(
             new GeneratedApiKey("crm", "AAAAAAAAAAAAAAAA", "secret-one", "ak_crm_AAAAAAAAAAAAAAAA_secret-one"),
             new GeneratedApiKey("crm", "BBBBBBBBBBBBBBBB", "secret-two", "ak_crm_BBBBBBBBBBBBBBBB_secret-two"));
         var service = CreateService(store, generator: generator);
 
-        await service.CreateAsync(new ApiKeyCreateRequest("crm", "prod", ["personas:read"]));
-        var second = await service.CreateAsync(new ApiKeyCreateRequest("crm", "prod", ["personas:read"]));
+        await service.CreateAsync(new ApiKeyCreateRequest("crm", "prod", ["personas:read"]), cancellationToken);
+        var second = await service.CreateAsync(new ApiKeyCreateRequest("crm", "prod", ["personas:read"]), cancellationToken);
 
         Assert.Equal("BBBBBBBBBBBBBBBB", second.PublicKey);
     }
@@ -130,9 +132,10 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_ReturnsMissingForBlankApiKey()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var validator = CreateValidator(new InMemoryStore());
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(null, "prod", []));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(null, "prod", []), cancellationToken);
 
         Assert.Equal(ApiKeyValidationFailureReason.Missing, Assert.IsType<ApiKeyValidationResult.Failure>(result).Reason);
     }
@@ -140,9 +143,10 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_ReturnsMalformedForInvalidApiKey()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var validator = CreateValidator(new InMemoryStore());
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest("bad", "prod", []));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest("bad", "prod", []), cancellationToken);
 
         Assert.Equal(ApiKeyValidationFailureReason.Malformed, Assert.IsType<ApiKeyValidationResult.Failure>(result).Reason);
     }
@@ -150,9 +154,10 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_ReturnsUnknownPublicKey()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var validator = CreateValidator(new InMemoryStore());
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest("ak_crm_ABCDEFGHJKLMNP23_secret", "prod", []));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest("ak_crm_ABCDEFGHJKLMNP23_secret", "prod", []), cancellationToken);
 
         Assert.Equal(ApiKeyValidationFailureReason.UnknownPublicKey, Assert.IsType<ApiKeyValidationResult.Failure>(result).Reason);
     }
@@ -160,10 +165,11 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_ReturnsStoreUnavailable()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var store = new InMemoryStore { ThrowOnFind = true };
         var validator = CreateValidator(store);
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest("ak_crm_ABCDEFGHJKLMNP23_secret", "prod", []));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest("ak_crm_ABCDEFGHJKLMNP23_secret", "prod", []), cancellationToken);
 
         Assert.Equal(ApiKeyValidationFailureReason.StoreUnavailable, Assert.IsType<ApiKeyValidationResult.Failure>(result).Reason);
     }
@@ -171,10 +177,11 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_ReturnsAppMismatch()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var setup = await CreateStoredKeyAsync("crm", "prod", ["personas:read"]);
         var validator = CreateValidator(setup.Store, setup.Hasher);
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey.Replace("ak_crm_", "ak_bot_", StringComparison.Ordinal), "prod", []));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey.Replace("ak_crm_", "ak_bot_", StringComparison.Ordinal), "prod", []), cancellationToken);
 
         Assert.Equal(ApiKeyValidationFailureReason.AppMismatch, Assert.IsType<ApiKeyValidationResult.Failure>(result).Reason);
     }
@@ -182,10 +189,11 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_ReturnsEnvironmentMismatch()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var setup = await CreateStoredKeyAsync("crm", "prod", ["personas:read"]);
         var validator = CreateValidator(setup.Store, setup.Hasher);
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "stage", []));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "stage", []), cancellationToken);
 
         Assert.Equal(ApiKeyValidationFailureReason.EnvironmentMismatch, Assert.IsType<ApiKeyValidationResult.Failure>(result).Reason);
     }
@@ -193,10 +201,11 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_ReturnsRevoked()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var setup = await CreateStoredKeyAsync("crm", "prod", ["personas:read"], revokedAt: DateTimeOffset.UtcNow);
         var validator = CreateValidator(setup.Store, setup.Hasher);
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "prod", []));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "prod", []), cancellationToken);
 
         Assert.Equal(ApiKeyValidationFailureReason.Revoked, Assert.IsType<ApiKeyValidationResult.Failure>(result).Reason);
     }
@@ -204,10 +213,11 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_ReturnsExpired()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var setup = await CreateStoredKeyAsync("crm", "prod", ["personas:read"], expiresAt: DateTimeOffset.UtcNow.AddMinutes(-1));
         var validator = CreateValidator(setup.Store, setup.Hasher);
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "prod", []));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "prod", []), cancellationToken);
 
         Assert.Equal(ApiKeyValidationFailureReason.Expired, Assert.IsType<ApiKeyValidationResult.Failure>(result).Reason);
     }
@@ -215,10 +225,11 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_ReturnsInvalidSecret()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var setup = await CreateStoredKeyAsync("crm", "prod", ["personas:read"]);
         var validator = CreateValidator(setup.Store, setup.Hasher);
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest($"{ApiKeyConstants.Prefix}_crm_{setup.PublicKey}_wrong-secret", "prod", []));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest($"{ApiKeyConstants.Prefix}_crm_{setup.PublicKey}_wrong-secret", "prod", []), cancellationToken);
 
         Assert.Equal(ApiKeyValidationFailureReason.InvalidSecret, Assert.IsType<ApiKeyValidationResult.Failure>(result).Reason);
     }
@@ -226,10 +237,11 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_ReturnsMissingRequiredScope()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var setup = await CreateStoredKeyAsync("crm", "prod", ["personas:read"]);
         var validator = CreateValidator(setup.Store, setup.Hasher);
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "prod", ["personas:execute"]));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "prod", ["personas:execute"]), cancellationToken);
 
         Assert.Equal(ApiKeyValidationFailureReason.MissingRequiredScope, Assert.IsType<ApiKeyValidationResult.Failure>(result).Reason);
     }
@@ -237,10 +249,11 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_Succeeds_AndMarksUsage()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var setup = await CreateStoredKeyAsync("crm", "prod", ["personas:read"]);
         var validator = CreateValidator(setup.Store, setup.Hasher);
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "prod", ["personas:read"], "127.0.0.1", "agent"));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "prod", ["personas:read"], "127.0.0.1", "agent"), cancellationToken);
 
         var success = Assert.IsType<ApiKeyValidationResult.Success>(result);
         Assert.Equal(setup.PublicKey, success.PublicKey);
@@ -251,11 +264,12 @@ public sealed class CoreTests
     [Fact]
     public async Task Validator_IgnoresMarkUsedAvailabilityFailure()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var setup = await CreateStoredKeyAsync("crm", "prod", ["personas:read"]);
         setup.Store.ThrowOnMarkUsed = true;
         var validator = CreateValidator(setup.Store, setup.Hasher);
 
-        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "prod", ["personas:read"]));
+        var result = await validator.ValidateAsync(new ApiKeyValidationRequest(setup.FullApiKey, "prod", ["personas:read"]), cancellationToken);
 
         Assert.IsType<ApiKeyValidationResult.Success>(result);
     }

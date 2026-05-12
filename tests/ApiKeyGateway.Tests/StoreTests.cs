@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace ApiKeyGateway.Tests;
 
-public sealed class DapperTests
+public sealed class StoreTests
 {
     [Fact]
     public void ScopeJsonSerializer_RoundTripsScopes()
@@ -59,9 +59,10 @@ public sealed class DapperTests
     [Fact]
     public async Task Store_TranslatesAvailabilityErrors()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var store = CreateStore(new ThrowingFactory(new FakeDbException("boom")));
 
-        await Assert.ThrowsAsync<ApiKeyStoreUnavailableException>(() => store.FindByPublicKeyAsync("ABCDEFGHJKLMNP23"));
+        await Assert.ThrowsAsync<ApiKeyStoreUnavailableException>(() => store.FindByPublicKeyAsync("ABCDEFGHJKLMNP23", cancellationToken));
     }
 
     [Fact]
@@ -86,7 +87,7 @@ public sealed class DapperTests
     {
         var services = new ServiceCollection();
 
-        services.AddApiKeyGatewayDapper(options =>
+        services.AddApiKeyGatewayStore(options =>
         {
             options.Dialect = ApiKeySqlDialect.MySql;
             options.ConnectionString = "server=localhost;database=test;";

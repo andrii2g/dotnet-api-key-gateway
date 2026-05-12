@@ -419,9 +419,9 @@ public sealed class ApiKeyStore : IApiKeyStore
     }
 }
 
-public static class ApiKeyGatewayDapperServiceCollectionExtensions
+public static class ApiKeyGatewayStoreServiceCollectionExtensions
 {
-    public static IServiceCollection AddApiKeyGatewayDapper(
+    public static IServiceCollection AddApiKeyGatewayStore(
         this IServiceCollection services,
         Action<ApiKeyStoreOptions> configure)
     {
