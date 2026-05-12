@@ -20,15 +20,15 @@ public sealed class SystemClock : ISystemClock
 
 public sealed class ApiKeyOptions
 {
-    public string CurrentEnvironment { get; init; } = "dev";
+    public string CurrentEnvironment { get; set; } = "dev";
 
-    public string HashPepper { get; init; } = string.Empty;
+    public string HashPepper { get; set; } = string.Empty;
 
-    public bool AllowXApiKeyHeader { get; init; } = true;
+    public bool AllowXApiKeyHeader { get; set; } = true;
 
-    public bool UpdateLastUsed { get; init; } = true;
+    public bool UpdateLastUsed { get; set; } = true;
 
-    public int SecretBytes { get; init; } = ApiKeyConstants.MinimumSecretBytes;
+    public int SecretBytes { get; set; } = ApiKeyConstants.MinimumSecretBytes;
 }
 
 public sealed class ApiKeyStoreUnavailableException : Exception
