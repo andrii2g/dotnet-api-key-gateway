@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ApiKeyGateway\ApiKeyGateway.csproj" />
-    <ProjectReference Include="..\..\src\ApiKeyGateway.AspNetCore\ApiKeyGateway.AspNetCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

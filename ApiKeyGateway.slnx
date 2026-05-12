@@ -1,8 +1,9 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/ApiKeyGateway.AspNetCore/ApiKeyGateway.AspNetCore.csproj" />
-    <Project Path="src/ApiKeyGateway.Dapper/ApiKeyGateway.Dapper.csproj" />
     <Project Path="src/ApiKeyGateway/ApiKeyGateway.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/ApiKeyGateway.SampleWeb/ApiKeyGateway.SampleWeb.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ApiKeyGateway.AspNetCore.Tests/ApiKeyGateway.AspNetCore.Tests.csproj" />

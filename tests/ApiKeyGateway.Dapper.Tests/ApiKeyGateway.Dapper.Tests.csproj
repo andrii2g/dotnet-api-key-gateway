@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ApiKeyGateway\ApiKeyGateway.csproj" />
-    <ProjectReference Include="..\..\src\ApiKeyGateway.Dapper\ApiKeyGateway.Dapper.csproj" />
   </ItemGroup>
 
   <ItemGroup>

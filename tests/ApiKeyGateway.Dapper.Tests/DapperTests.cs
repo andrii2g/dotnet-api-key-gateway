@@ -22,7 +22,7 @@ public sealed class DapperTests
     [Fact]
     public void RowMapping_ConvertsJsonToCoreRecord()
     {
-        var rowType = GetInternalType("ApiKeyGateway.Dapper.DapperApiKeyRow");
+        var rowType = GetInternalType("ApiKeyGateway.DapperApiKeyRow");
         var row = Activator.CreateInstance(rowType)!;
         Set(rowType, row, "Id", 1L);
         Set(rowType, row, "App", "crm");
@@ -67,7 +67,7 @@ public sealed class DapperTests
     [Fact]
     public void RowMapping_DoesNotTranslateJsonErrors()
     {
-        var rowType = GetInternalType("ApiKeyGateway.Dapper.DapperApiKeyRow");
+        var rowType = GetInternalType("ApiKeyGateway.DapperApiKeyRow");
         var row = Activator.CreateInstance(rowType)!;
         Set(rowType, row, "Id", 1L);
         Set(rowType, row, "App", "crm");
@@ -107,7 +107,7 @@ public sealed class DapperTests
 
     private static object GetStatements(ApiKeySqlDialect dialect)
     {
-        var type = GetInternalType("ApiKeyGateway.Dapper.ApiKeySqlStatementFactory");
+        var type = GetInternalType("ApiKeyGateway.ApiKeySqlStatementFactory");
         return type.GetMethod("Create", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, [dialect])!;
     }
 
@@ -115,11 +115,11 @@ public sealed class DapperTests
         (string)instance.GetType().GetProperty(propertyName)!.GetValue(instance)!;
 
     private static Type GetInternalType(string fullName) =>
-        typeof(ApiKeyGateway.Dapper.AssemblyMarker).Assembly.GetType(fullName, throwOnError: true)!;
+        typeof(ApiKeyGateway.AssemblyMarker).Assembly.GetType(fullName, throwOnError: true)!;
 
     private static T Invoke<T>(string methodName, params object[] args)
     {
-        var type = GetInternalType("ApiKeyGateway.Dapper.ScopeJsonSerializer");
+        var type = GetInternalType("ApiKeyGateway.ScopeJsonSerializer");
         return (T)type.GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, args)!;
     }
 
