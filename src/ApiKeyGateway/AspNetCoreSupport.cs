@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -9,11 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace ApiKeyGateway.AspNetCore;
-
-public static class AssemblyMarker
-{
-}
+namespace ApiKeyGateway;
 
 public static class ApiKeyAuthenticationDefaults
 {
@@ -139,7 +134,7 @@ public sealed class ApiKeyAuthenticationHandler(
     }
 }
 
-public static class ServiceCollectionExtensions
+public static class ApiKeyGatewayAuthenticationServiceCollectionExtensions
 {
     public static IServiceCollection AddApiKeyAuthentication(
         this IServiceCollection services,

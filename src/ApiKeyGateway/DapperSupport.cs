@@ -1,4 +1,3 @@
-using System.Data;
 using System.Data.Common;
 using System.Text.Json;
 using Dapper;
@@ -7,11 +6,7 @@ using Microsoft.Extensions.Options;
 using MySqlConnector;
 using Npgsql;
 
-namespace ApiKeyGateway.Dapper;
-
-public static class AssemblyMarker
-{
-}
+namespace ApiKeyGateway;
 
 public interface IApiKeyDbConnectionFactory
 {
@@ -396,10 +391,8 @@ public sealed class DapperApiKeyStore : IApiKeyStore
         }
     }
 
-    internal static bool ShouldWrapAvailability(Exception exception)
-    {
-        return exception is TimeoutException or DbException;
-    }
+    internal static bool ShouldWrapAvailability(Exception exception) =>
+        exception is TimeoutException or DbException;
 
     private CommandDefinition CreateCommand(string sql, object parameters, CancellationToken cancellationToken) =>
         new(sql, parameters, commandTimeout: _commandTimeoutSeconds, cancellationToken: cancellationToken);
@@ -426,7 +419,7 @@ public sealed class DapperApiKeyStore : IApiKeyStore
     }
 }
 
-public static class ServiceCollectionExtensions
+public static class ApiKeyGatewayDapperServiceCollectionExtensions
 {
     public static IServiceCollection AddApiKeyGatewayDapper(
         this IServiceCollection services,
