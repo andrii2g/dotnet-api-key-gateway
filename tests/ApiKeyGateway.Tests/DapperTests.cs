@@ -22,7 +22,7 @@ public sealed class DapperTests
     [Fact]
     public void RowMapping_ConvertsJsonToCoreRecord()
     {
-        var rowType = GetInternalType("ApiKeyGateway.DapperApiKeyRow");
+        var rowType = GetInternalType("ApiKeyGateway.ApiKeyRow");
         var row = Activator.CreateInstance(rowType)!;
         Set(rowType, row, "Id", 1L);
         Set(rowType, row, "App", "crm");
@@ -67,7 +67,7 @@ public sealed class DapperTests
     [Fact]
     public void RowMapping_DoesNotTranslateJsonErrors()
     {
-        var rowType = GetInternalType("ApiKeyGateway.DapperApiKeyRow");
+        var rowType = GetInternalType("ApiKeyGateway.ApiKeyRow");
         var row = Activator.CreateInstance(rowType)!;
         Set(rowType, row, "Id", 1L);
         Set(rowType, row, "App", "crm");
@@ -96,7 +96,7 @@ public sealed class DapperTests
 
         Assert.NotNull(provider.GetRequiredService<IApiKeyStore>());
         Assert.NotNull(provider.GetRequiredService<IApiKeyDbConnectionFactory>());
-        Assert.NotNull(provider.GetRequiredService<IOptions<ApiKeyDapperOptions>>());
+        Assert.NotNull(provider.GetRequiredService<IOptions<ApiKeyStoreOptions>>());
     }
 
     [Fact]
@@ -126,9 +126,9 @@ public sealed class DapperTests
     private static void Set(Type type, object instance, string propertyName, object? value) =>
         type.GetProperty(propertyName)!.SetValue(instance, value);
 
-    private static DapperApiKeyStore CreateStore(IApiKeyDbConnectionFactory factory)
+    private static ApiKeyStore CreateStore(IApiKeyDbConnectionFactory factory)
     {
-        return new DapperApiKeyStore(factory, Options.Create(new ApiKeyDapperOptions
+        return new ApiKeyStore(factory, Options.Create(new ApiKeyStoreOptions
         {
             Dialect = ApiKeySqlDialect.MySql,
             ConnectionString = "unused",

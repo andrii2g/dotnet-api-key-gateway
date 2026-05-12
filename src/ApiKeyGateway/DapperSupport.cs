@@ -19,7 +19,7 @@ public enum ApiKeySqlDialect
     PostgreSql
 }
 
-public sealed class ApiKeyDapperOptions
+public sealed class ApiKeyStoreOptions
 {
     public ApiKeySqlDialect Dialect { get; set; } = ApiKeySqlDialect.MySql;
 
@@ -28,7 +28,7 @@ public sealed class ApiKeyDapperOptions
     public int CommandTimeoutSeconds { get; set; } = 30;
 }
 
-internal sealed class DapperApiKeyRow
+internal sealed class ApiKeyRow
 {
     public long Id { get; init; }
     public string App { get; init; } = string.Empty;
@@ -265,15 +265,15 @@ internal static class ApiKeySqlStatementFactory
     }
 }
 
-public sealed class DefaultApiKeyDbConnectionFactory(IOptions<ApiKeyDapperOptions> options) : IApiKeyDbConnectionFactory
+public sealed class DefaultApiKeyDbConnectionFactory(IOptions<ApiKeyStoreOptions> options) : IApiKeyDbConnectionFactory
 {
-    private readonly ApiKeyDapperOptions _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+    private readonly ApiKeyStoreOptions _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
 
     public async ValueTask<DbConnection> OpenConnectionAsync(CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(_options.ConnectionString))
         {
-            throw new InvalidOperationException("ApiKeysDapper:ConnectionString must be configured.");
+            throw new InvalidOperationException("ApiKeys:ConnectionString must be configured.");
         }
 
         DbConnection connection = _options.Dialect switch
@@ -288,15 +288,15 @@ public sealed class DefaultApiKeyDbConnectionFactory(IOptions<ApiKeyDapperOption
     }
 }
 
-public sealed class DapperApiKeyStore : IApiKeyStore
+public sealed class ApiKeyStore : IApiKeyStore
 {
     private readonly IApiKeyDbConnectionFactory _connectionFactory;
     private readonly ApiKeySqlStatements _sql;
     private readonly int _commandTimeoutSeconds;
 
-    public DapperApiKeyStore(
+    public ApiKeyStore(
         IApiKeyDbConnectionFactory connectionFactory,
-        IOptions<ApiKeyDapperOptions> options)
+        IOptions<ApiKeyStoreOptions> options)
     {
         ArgumentNullException.ThrowIfNull(connectionFactory);
         ArgumentNullException.ThrowIfNull(options);
@@ -305,7 +305,7 @@ public sealed class DapperApiKeyStore : IApiKeyStore
         var value = options.Value;
         if (value.CommandTimeoutSeconds <= 0)
         {
-            throw new InvalidOperationException("ApiKeysDapper:CommandTimeoutSeconds must be greater than zero.");
+            throw new InvalidOperationException("ApiKeys:CommandTimeoutSeconds must be greater than zero.");
         }
 
         _commandTimeoutSeconds = value.CommandTimeoutSeconds;
@@ -318,7 +318,7 @@ public sealed class DapperApiKeyStore : IApiKeyStore
         {
             await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken);
             var command = CreateCommand(_sql.FindByPublicKey, new { PublicKey = publicKey }, cancellationToken);
-            var row = await connection.QuerySingleOrDefaultAsync<DapperApiKeyRow>(command);
+            var row = await connection.QuerySingleOrDefaultAsync<ApiKeyRow>(command);
             return row?.ToRecord();
         }
         catch (Exception ex) when (ShouldWrapAvailability(ex))
@@ -339,7 +339,7 @@ public sealed class DapperApiKeyStore : IApiKeyStore
             var id = await connection.ExecuteScalarAsync<long>(createCommand);
 
             var findCommand = CreateCommand(_sql.FindById, new { Id = id }, cancellationToken);
-            var row = await connection.QuerySingleAsync<DapperApiKeyRow>(findCommand);
+            var row = await connection.QuerySingleAsync<ApiKeyRow>(findCommand);
             return row.ToRecord();
         }
         catch (Exception ex) when (ShouldWrapAvailability(ex))
@@ -423,14 +423,14 @@ public static class ApiKeyGatewayDapperServiceCollectionExtensions
 {
     public static IServiceCollection AddApiKeyGatewayDapper(
         this IServiceCollection services,
-        Action<ApiKeyDapperOptions> configure)
+        Action<ApiKeyStoreOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
 
         services.Configure(configure);
         services.AddSingleton<IApiKeyDbConnectionFactory, DefaultApiKeyDbConnectionFactory>();
-        services.AddSingleton<IApiKeyStore, DapperApiKeyStore>();
+        services.AddSingleton<IApiKeyStore, ApiKeyStore>();
         return services;
     }
 }
