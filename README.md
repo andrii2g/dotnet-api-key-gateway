@@ -13,6 +13,19 @@ Small .NET API key gateway library with:
 - `samples/ApiKeyGateway.SampleWeb`: sample Minimal API app
 - `tests/ApiKeyGateway.Tests`: merged test suite
 
+## Quick Start
+
+For the full local flow, including:
+
+- starting Docker containers
+- running the sample app
+- creating a test API key
+- testing the protected endpoint
+- revoking the key
+- tearing down containers and deleting all DB data
+
+see [QUICKSTART.md](C:/github/a2g.name/dotnet-api-key-gateway/QUICKSTART.md).
+
 ## Local databases
 
 Use Docker Compose to start MySQL by default, with PostgreSQL available as an optional profile.
@@ -68,7 +81,7 @@ dotnet run --project samples/ApiKeyGateway.SampleWeb -- \
 Sample endpoints:
 
 - `POST /api-keys`
-- `POST /api-keys/{publicKey}/revoke`
+- `POST /api-keys/{keyOrPublicKey}/revoke`
 - `GET /secure/personas`
 - `GET /health`
 
@@ -87,6 +100,12 @@ Use the returned `fullApiKey`:
 ```bash
 curl http://localhost:5000/secure/personas \
   -H "Authorization: Bearer <fullApiKey>"
+```
+
+Revoke the key with either the returned `publicKey` or the full API key:
+
+```bash
+curl -X POST http://localhost:5000/api-keys/<publicKey>/revoke
 ```
 
 ## Verify

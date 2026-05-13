@@ -73,9 +73,9 @@ app.MapPost("/api-keys", async (CreateApiKeyInput input, IApiKeyService apiKeySe
     return TypedResults.Created($"/api-keys/{result.PublicKey}", result);
 });
 
-app.MapPost("/api-keys/{publicKey}/revoke", async (string publicKey, IApiKeyService apiKeyService, CancellationToken cancellationToken) =>
+app.MapPost("/api-keys/{keyOrPublicKey}/revoke", async (string keyOrPublicKey, IApiKeyService apiKeyService, CancellationToken cancellationToken) =>
 {
-    await apiKeyService.RevokeAsync(publicKey, cancellationToken);
+    await apiKeyService.RevokeAsync(NormalizeRevocationIdentifier(keyOrPublicKey), cancellationToken);
     return TypedResults.NoContent();
 });
 
@@ -88,6 +88,30 @@ app.MapGet("/secure/personas", () => TypedResults.Ok(new
 app.MapGet("/health", () => TypedResults.Ok(new { status = "ok" }));
 
 app.Run();
+
+static string NormalizeRevocationIdentifier(string value)
+{
+    ArgumentException.ThrowIfNullOrWhiteSpace(value);
+
+    var trimmed = value.Trim();
+    var parser = new ApiKeyParser();
+    if (parser.TryParse(trimmed, out var parsed))
+    {
+        return parsed.PublicKey;
+    }
+
+    var underscoreIndex = trimmed.IndexOf('_');
+    if (underscoreIndex > 0)
+    {
+        var candidate = trimmed[..underscoreIndex].Trim().ToUpperInvariant();
+        if (candidate.Length == ApiKeyConstants.PublicKeyLength)
+        {
+            return candidate;
+        }
+    }
+
+    return trimmed;
+}
 
 internal sealed record CreateApiKeyInput(
     string App,
